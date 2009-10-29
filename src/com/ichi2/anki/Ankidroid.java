@@ -107,9 +107,9 @@ public class Ankidroid extends Activity implements Runnable
 	 */
 	private WebView mCard;
 
-	private ToggleButton mToggleWhiteboard, mFlipCard;
+	private ToggleButton mToggleWhiteboard;
 
-	private Button mSelectRemembered, mSelectNotRemembered;
+	private Button mShowAnswer, mShowQuestion, mSelectRemembered, mSelectNotRemembered;
 
 	private Chronometer mTimer;
 
@@ -120,21 +120,6 @@ public class Ankidroid extends Activity implements Runnable
 	//private LinearLayout mMainLayout, mRememberedLayout, mChronoButtonsLayout;
 	
 	//private FrameLayout mCardWhiteboardLayout;
-	
-	// Handler for the flip toogle button, between the question and the answer
-	// of a card
-	CompoundButton.OnCheckedChangeListener mFlipCardHandler = new CompoundButton.OnCheckedChangeListener()
-	{
-		//@Override
-		public void onCheckedChanged(CompoundButton buttonView, boolean showAnswer)
-		{
-			Log.i(TAG, "Flip card changed:");
-			if (showAnswer)
-				displayCardAnswer();
-			else
-				displayCardQuestion();
-		}
-	};
 
 	// Handler for the Whiteboard toggle button.
 	CompoundButton.OnCheckedChangeListener mToggleOverlayHandler = new CompoundButton.OnCheckedChangeListener()
@@ -145,6 +130,22 @@ public class Ankidroid extends Activity implements Runnable
 		}
 	};
 
+	View.OnClickListener mShowAnswerHandler = new View.OnClickListener() 
+	{	
+		@Override
+		public void onClick(View v) {
+			displayCardAnswer();		
+		}
+	};
+	
+	View.OnClickListener mShowQuestionHandler = new View.OnClickListener() 
+	{	
+		@Override
+		public void onClick(View v) {
+			displayCardQuestion();
+		}
+	};
+	
 	// Handlers for buttons that allow user to select how well they did.
 	View.OnClickListener mSelectRememberedHandler = new View.OnClickListener()
 	{
@@ -154,6 +155,7 @@ public class Ankidroid extends Activity implements Runnable
 			if (spacedRepetition)
 				currentCard.space();
 			nextCard();
+			displayCardQuestion();
 		}
 	};
 
@@ -171,6 +173,7 @@ public class Ankidroid extends Activity implements Runnable
 			if (spacedRepetition)
 				currentCard.reset();
 			nextCard();
+			displayCardQuestion();
 		}
 	};
 
@@ -313,10 +316,11 @@ public class Ankidroid extends Activity implements Runnable
 		setContentView(layout);
 
 		mCard = (WebView) findViewById(R.id.flashcard);
+		mShowAnswer = (Button) findViewById(R.id.show_answer);
+		mShowQuestion = (Button) findViewById(R.id.show_question);
 		mSelectRemembered = (Button) findViewById(R.id.select_remembered);
 		mSelectNotRemembered = (Button) findViewById(R.id.select_notremembered);
 		mTimer = (Chronometer) findViewById(R.id.card_time);
-		mFlipCard = (ToggleButton) findViewById(R.id.flip_card);
 		mToggleWhiteboard = (ToggleButton) findViewById(R.id.toggle_overlay);
 		mWhiteboard = (Whiteboard) findViewById(R.id.whiteboard);
 		//mMainLayout = (LinearLayout) findViewById(R.id.main_layout);
@@ -326,9 +330,10 @@ public class Ankidroid extends Activity implements Runnable
 		
 		showOrHideControls();
 
+		mShowAnswer.setOnClickListener(mShowAnswerHandler);
+		mShowQuestion.setOnClickListener(mShowQuestionHandler);
 		mSelectRemembered.setOnClickListener(mSelectRememberedHandler);
 		mSelectNotRemembered.setOnClickListener(mSelectNotRememberedHandler);
-		mFlipCard.setOnCheckedChangeListener(mFlipCardHandler);
 		mToggleWhiteboard.setOnCheckedChangeListener(mToggleOverlayHandler);
 		
 		mCard.setFocusable(false);
@@ -384,7 +389,6 @@ public class Ankidroid extends Activity implements Runnable
 			startActivityForResult(preferences, PREFERENCES_UPDATE);
 			return true;
 		case MENU_ABOUT:
-			Toast.makeText(this, deckFilename, Toast.LENGTH_LONG).show();
 			Intent about = new Intent(this, About.class);
 			startActivity(about);
 			return true;
@@ -531,14 +535,12 @@ public class Ankidroid extends Activity implements Runnable
 			mCard.setVisibility(View.VISIBLE);
 			mSelectRemembered.setVisibility(View.VISIBLE);
 			mSelectNotRemembered.setVisibility(View.VISIBLE);
-			mFlipCard.setVisibility(View.VISIBLE);
 			showOrHideControls();
 		} else
 		{
 			mCard.setVisibility(View.GONE);
 			mSelectRemembered.setVisibility(View.GONE);
 			mSelectNotRemembered.setVisibility(View.GONE);
-			mFlipCard.setVisibility(View.GONE);
 			mTimer.setVisibility(View.GONE);
 			mToggleWhiteboard.setVisibility(View.GONE);
 			mWhiteboard.setVisibility(View.GONE);
@@ -581,9 +583,6 @@ public class Ankidroid extends Activity implements Runnable
 		else
 			currentCard = AnkiDb.Card.randomCard();
 
-		// Set the correct value for the flip card button - That triggers the
-		// listener which displays the question of the card
-		mFlipCard.setChecked(false);
 		mWhiteboard.clear();
 		mTimer.setBase(SystemClock.elapsedRealtime());
 		mTimer.start();
@@ -606,10 +605,12 @@ public class Ankidroid extends Activity implements Runnable
 		} else
 		{
 			Log.i(TAG, "displayCardQuestion - Hiding 'Remembered' and 'Not Remembered' buttons...");
+			mShowQuestion.setVisibility(View.GONE);
 			mSelectRemembered.setVisibility(View.GONE);
 			mSelectNotRemembered.setVisibility(View.GONE);
-									
-			mFlipCard.requestFocus();
+							
+			mShowAnswer.setVisibility(View.VISIBLE);
+			mShowAnswer.requestFocus();
 
 			updateCard(currentCard.question);
 		}
@@ -629,6 +630,9 @@ public class Ankidroid extends Activity implements Runnable
 		mTimer.stop();
 		mWhiteboard.lock();
 
+		mShowAnswer.setVisibility(View.GONE);
+		
+		mShowQuestion.setVisibility(View.VISIBLE);
 		mSelectRemembered.setVisibility(View.VISIBLE);
 		mSelectNotRemembered.setVisibility(View.VISIBLE);
 		
